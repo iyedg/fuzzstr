@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "fuzzstr"
+version = "0.1.0"
+description = ""
+authors = ["Iyed Ghedamsi <iyed.ghdemsi@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+pandas-flavor = "^0.2.0"
+scipy = "^1.5.4"
+numpy = "^1.19.4"
+textdistance = "^4.2.0"
+glom = "^20.11.0"
+pyprojroot = "^0.2.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+isort = "^5.6.4"
+ipykernel = "^5.3.4"
+Sphinx = "^3.3.1"
+sphinx-rtd-theme = "^0.5.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

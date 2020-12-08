@@ -1,62 +1,64 @@
-from typing import Callable, Iterable, Union
+from typing import Callable, Sequence, Union
 
 import textdistance
 from glom import Merge, T, glom
 from pandas_flavor import register_dataframe_accessor
 
+from .fuzzstr import hungarian_fuzz as imp_hungarian_fuzz
 
-@register_dataframe_accessor("fuzz")
+
+@register_dataframe_accessor("fuzzstr")
 class FuzzyStringMatchingAccessor:
     def __init__(self, df):
         self._df = df
 
-    def fuzzy_match(
+    def hungarian_fuzz(
         self,
-        source_column: Union[str, int],
-        target: Iterable[str],
+        queries_column: Union[str, int],
+        candidates: Sequence[str],
         scorer: Callable = textdistance.jaro_winkler.distance,
         key: Callable = lambda x: x,
         maximize: bool = False,
         debug=False,
     ):
-        source = self._df[source_column].astype("str").unique()
+        queries = self._df[queries_column].astype("str").unique()
 
-        source_diff = list(set(source) - set(target))
-        target_diff = list(set(target) - set(source))
+        queries_diff = list(set(queries) - set(candidates))
+        target_diff = list(set(candidates) - set(queries))
 
-        matches = fuzzy_matching_best(
-            source=source_diff,
-            target=target_diff,
+        matches = imp_hungarian_fuzz(
+            queries=queries_diff,
+            candidates=target_diff,
             key=key,
             scorer=scorer,
             maximize=maximize,
         )
 
-        replacements_spec = Merge([{T["source"]: "target"}])
+        replacements_spec = Merge([{T["query"]: "candidate"}])
         replacements_dict = glom(matches, replacements_spec)
 
-        distances_spec = ([{T["source"]: "distance"}], Merge())
+        distances_spec = ([{T["query"]: "distance"}], Merge())
         distances_dict = glom(matches, distances_spec)
 
         if debug:
-            debug_col_name = f"{source_column}_match_from_target"
+            debug_col_name = f"{queries_column}_candidate_match"
             return self._df.pipe(
                 lambda df: df.assign(
                     **{
-                        debug_col_name: self._df[source_column].replace(
+                        debug_col_name: self._df[queries_column].replace(
                             replacements_dict
                         ),
-                        "distance": self._df[source_column]
+                        "distance": self._df[queries_column]
                         .replace(distances_dict)
                         .replace(r"\D+", 0, regex=True),
                     }
                 )
-            ).set_index([source_column, debug_col_name, "distance"])
+            )
         else:
             return self._df.pipe(
                 lambda df: df.assign(
                     **{
-                        source_column: self._df[source_column].replace(
+                        queries_column: self._df[queries_column].replace(
                             replacements_dict
                         )
                     }
